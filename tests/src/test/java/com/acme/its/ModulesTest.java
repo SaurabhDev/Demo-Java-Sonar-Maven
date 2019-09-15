@@ -10,6 +10,11 @@ public class ModulesTest {
   public void integrationTest1() {
     new Module1().coveredByIntegrationTest();
   }
+  
+  @Test
+  public void integrationTest1() {
+    new Module1().display("devopsaurabh16@gmail.com")
+  }
 
   @Test
   public void integrationTest2() {

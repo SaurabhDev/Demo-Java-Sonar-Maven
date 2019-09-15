@@ -9,6 +9,10 @@ public class Module1 {
   public void coveredByIntegrationTest() {
     System.out.println("This method is covered by integration test");
   }
+  
+  public void display(String email) {
+	    System.out.println("This method display email"+email);
+	  }
 
   public void uncovered() {
     System.out.println("This method is not covered");
