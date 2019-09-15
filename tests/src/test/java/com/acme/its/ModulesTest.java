@@ -12,7 +12,7 @@ public class ModulesTest {
   }
   
   @Test
-  public void integrationTest1() {
+  public void displayTest() {
     new Module1().display("devopsaurabh16@gmail.com");
   }
 
