@@ -13,11 +13,15 @@ public class ModulesTest {
   
   @Test
   public void displayTest() {
-    new Module1().display(123);
+    new Module1().display("123");
   }
 
   @Test
   public void integrationTest2() {
+    new Module2().coveredByIntegrationTest();
+  }
+  @Test
+  public void integrationTest3() {
     new Module2().coveredByIntegrationTest();
   }
   
