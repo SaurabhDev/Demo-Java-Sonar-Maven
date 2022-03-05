@@ -1,0 +1,92 @@
+name: Start
+
+on:
+  workflow_dispatch:
+    inputs:
+      repo_owner:
+        type: string
+        description: Target repository owner
+        required: true
+      repo_name:
+        type: string
+        description: Target repository name
+        required: true
+      pat:
+        type: string
+        required: true
+        description: Personal Access Token (PAT)
+      stack:
+        type: choice
+        description: Choose a language stack
+        options:
+          - JAVA MAVEN
+          - JAVA SPRINGBOOT
+          #add new stacks here
+      tests:
+        type: boolean
+        description: Unit tests?
+        default: true
+      build:
+        type: boolean
+        description: Build? [depends on tests]
+        default: true
+      publish:
+        type: boolean
+        description: Publish? [depends on build]
+        default: true
+      #If you need, add more inputs here (for a new phase for example)
+jobs:
+  start:
+    runs-on: windows-latest
+    steps:
+      #- uses: actions/checkout@master
+
+      - name: Show options
+        run: |
+          echo "   REPO: ${{ github.event.inputs.repo_owner }}/${{ github.event.inputs.repo_name }}"
+          echo "  STACK: ${{ github.event.inputs.stack }}"
+          echo "  TESTS: ${{ github.event.inputs.tests }}"
+          echo "  BUILD: ${{ github.event.inputs.build }}"
+          echo "PUBLISH: ${{ github.event.inputs.publish }}"
+
+  tests:
+    needs:
+      - start
+    if: ${{ github.event.inputs.tests == 'true'}}
+    uses: eduardomp/dynamic-gh-workflows/.github/workflows/tests.yml@main
+    with:
+      tests: ${{ github.event.inputs.tests }}
+      stack: ${{ github.event.inputs.stack }}
+      repo_owner: ${{ github.event.inputs.repo_owner }}
+      repo_name: ${{ github.event.inputs.repo_name }}
+      pat: ${{ github.event.inputs.pat }}
+    #secrets:
+    #  my_pat: ${{ secrets.my_pat }}
+
+  build:
+    needs:
+      - tests
+    if: ${{ github.event.inputs.build == 'true'}}
+    uses: eduardomp/dynamic-gh-workflows/.github/workflows/build.yml@main
+    with:
+      build: ${{ github.event.inputs.build }}
+      stack: ${{ github.event.inputs.stack }}
+      repo_owner: ${{ github.event.inputs.repo_owner }}
+      repo_name: ${{ github.event.inputs.repo_name }}
+      pat: ${{ github.event.inputs.pat }}
+    #secrets:
+    #  my_pat: ${{ secrets.my_pat }}
+
+  publish:
+    needs:
+      - build
+    if: ${{ github.event.inputs.publish == 'true'}}
+    uses: eduardomp/dynamic-gh-workflows/.github/workflows/publish.yml@main
+    with:
+      publish: ${{ github.event.inputs.publish }}
+      stack: ${{ github.event.inputs.stack }}
+      repo_owner: ${{ github.event.inputs.repo_owner }}
+      repo_name: ${{ github.event.inputs.repo_name }}
+      pat: ${{ github.event.inputs.pat }}
+    #secrets:
+    #  my_pat: ${{ secrets.my_pat }}
