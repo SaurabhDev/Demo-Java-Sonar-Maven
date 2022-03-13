@@ -1,0 +1,133 @@
+name: Start
+
+on:
+  # To run this workflow when a push occurs to the main branch (pipeline.properties file will be read as input)
+  push:
+    branches:
+      - main
+
+  # If you start the workflow mannualy, this is the trigger and the inputs will be readed from the UI
+  workflow_dispatch:
+    inputs:
+      repo_owner:
+        type: string
+        description: Target repository owner
+        required: true
+      repo_name:
+        type: string
+        description: Target repository name
+        required: true
+      stack:
+        type: choice
+        description: Choose a language stack
+        options:
+          - JAVA MAVEN
+          - JAVA SPRINGBOOT
+          #add new stacks here
+      tests:
+        type: boolean
+        description: Unit tests?
+        default: true
+      build:
+        type: boolean
+        description: Build? [depends on tests]
+        default: true
+      publish:
+        type: boolean
+        description: Publish? [depends on build]
+        default: true
+      #If you need, add more inputs here (for a new phase for example)
+
+jobs:
+  start:
+    runs-on: ubuntu-latest
+    outputs:
+      REPO_OWNER: ${{ steps.output.outputs.REPO_OWNER }}
+      REPO_NAME: ${{ steps.output.outputs.REPO_NAME }}
+      REPO: ${{ steps.output.outputs.REPO }}
+      STACK: ${{ steps.output.outputs.STACK }}
+      TESTS: ${{ steps.output.outputs.TESTS }}
+      BUILD: ${{ steps.output.outputs.BUILD }}
+      PUBLISH: ${{ steps.output.outputs.PUBLISH }}
+    steps:
+      - uses: actions/checkout@master
+
+      - uses: madhead/read-java-properties@latest
+        if: ${{ github.event_name == 'push' }}
+        id: properties
+        with:
+          file: pipeline.properties
+          all: true
+
+      - name: Setting variables for the pipeline (push event)
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          echo "REPO_OWNER=${{ steps.properties.outputs.repo_owner }}" >> $GITHUB_ENV
+          echo "REPO_NAME=${{ steps.properties.outputs.repo_name }}" >> $GITHUB_ENV
+          echo "REPO=${{ steps.properties.outputs.repo_owner }}/${{ steps.properties.outputs.repo_name }}" >> $GITHUB_ENV
+          echo "STACK=${{ steps.properties.outputs.stack }}" >> $GITHUB_ENV
+          echo "TESTS=${{ steps.properties.outputs.tests }}" >> $GITHUB_ENV
+          echo "BUILD=${{ steps.properties.outputs.build }}" >> $GITHUB_ENV
+          echo "PUBLISH=${{ steps.properties.outputs.publish }}" >> $GITHUB_ENV
+
+      - name: Setting variables for the pipeline (workflow_dispatch event)
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        run: |
+          echo "REPO_OWNER=${{ github.event.inputs.repo_owner }}" >> $GITHUB_ENV
+          echo "REPO_NAME=${{ github.event.inputs.repo_name }}" >> $GITHUB_ENV
+          echo "REPO=${{ github.event.inputs.repo_owner }}/${{ github.event.inputs.repo_name }}" >> $GITHUB_ENV
+          echo "STACK=${{ github.event.inputs.stack }}" >> $GITHUB_ENV
+          echo "TESTS=${{ github.event.inputs.tests }}" >> $GITHUB_ENV
+          echo "BUILD=${{ github.event.inputs.build }}" >> $GITHUB_ENV
+          echo "PUBLISH=${{ github.event.inputs.publish }}" >> $GITHUB_ENV
+
+      - name: Set job outputs
+        id: output
+        run: |
+          echo "::set-output name=REPO::${{ env.REPO }}"
+          echo "::set-output name=REPO_OWNER::${{ env.REPO_OWNER }}"
+          echo "::set-output name=REPO_NAME::${{ env.REPO_NAME }}"
+          echo "::set-output name=STACK::${{ env.STACK }}"
+          echo "::set-output name=TESTS::${{ env.TESTS }}"
+          echo "::set-output name=BUILD::${{ env.BUILD }}"
+          echo "::set-output name=PUBLISH::${{ env.PUBLISH }}"
+
+  tests:
+    needs: start
+    if: needs.start.outputs.TESTS == 'true'
+    uses: eduardomp/dynamic-gh-workflows/.github/workflows/tests.yml@main
+    with:
+      tests: ${{ needs.start.outputs.TESTS }}
+      stack: ${{ needs.start.outputs.STACK }}
+      repo_owner: ${{ needs.start.outputs.REPO_OWNER }}
+      repo_name: ${{ needs.start.outputs.REPO_NAME }}
+    secrets:
+      pat: ${{ secrets.PAT }}
+
+  build:
+    needs:
+      - start
+      - tests
+    if: needs.start.outputs.BUILD == 'true'
+    uses: eduardomp/dynamic-gh-workflows/.github/workflows/build.yml@main
+    with:
+      build: ${{ needs.start.outputs.BUILD }}
+      stack: ${{ needs.start.outputs.STACK }}
+      repo_owner: ${{ needs.start.outputs.REPO_OWNER }}
+      repo_name: ${{ needs.start.outputs.REPO_NAME }}
+    secrets:
+      pat: ${{ secrets.PAT }}
+
+  publish:
+    needs:
+      - start
+      - build
+    if: needs.start.outputs.PUBLISH == 'true'
+    uses: eduardomp/dynamic-gh-workflows/.github/workflows/publish.yml@main
+    with:
+      publish: ${{ needs.start.outputs.PUBLISH }}
+      stack: ${{ needs.start.outputs.STACK }}
+      repo_owner: ${{ needs.start.outputs.REPO_OWNER }}
+      repo_name: ${{ needs.start.outputs.REPO_NAME }}
+    secrets:
+      pat: ${{ secrets.PAT }}
