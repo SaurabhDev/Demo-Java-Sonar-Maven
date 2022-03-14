@@ -21,7 +21,7 @@ on:
         type: choice
         description: Choose a language stack
         options:
-          - JAVA MAVEN
+          - JAVA MAVEN MULTIMODULE MULTIMODULE
           - JAVA SPRINGBOOT
           #add new stacks here
       tests:
